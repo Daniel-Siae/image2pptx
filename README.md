@@ -1,39 +1,74 @@
 # image2pptx
 
-Convert PaddleOCR-VL layout parsing results and source images into editable PowerPoint decks.
+基于 PaddleOCR-VL 的本地图片转 PPT 工具：上传文档图片获得 OCR JSON，再把 OCR JSON 和原图转换为可编辑的 `.pptx`。
 
-This is a local single-user web tool for:
+项目目标是“版面尽量复刻 + 内容尽量可编辑”。文本会生成 PowerPoint 文本框，表格尽量生成原生表格，图片块会从原图按 OCR bbox 裁剪后作为独立图片放入 PPT。
 
-- Uploading one or more document images and running PaddleOCR document parsing.
-- Previewing detected layout blocks over the source image.
-- Exporting OCR JSON plus original images to a multi-page `.pptx`.
-- Keeping text, tables, and image crops editable where possible.
+## 效果预览
 
-## Tech Stack
+下面是 OCR 布局框与原图的对齐诊断图，用于检查 PaddleOCR 返回的 bbox 是否适合后续生成 PPT。
 
-- Frontend: React + Vite
-- Backend: Express + TypeScript
-- OCR: PaddleOCR document parsing skill via `python vl_caller.py`
-- PPTX: PptxGenJS
+![OCR 布局框对齐诊断](docs/images/ocr-1-stable-overlay.png)
 
-## Requirements
+## 样例文件
+
+仓库内置了一个首个验收样例：
+
+- 源图片：[server/samples/summary.png](server/samples/summary.png)
+- OCR JSON：[server/samples/summary.json](server/samples/summary.json)
+
+本地启动后可以在页面中使用样例生成 PPT，也可以通过 `/api/ppt` 上传这两个文件验证转换链路。
+
+## 技术栈
+
+- 前端：React + Vite
+- 后端：Node.js + Express + TypeScript
+- OCR：通过 PaddleOCR 文档解析 skill 调用 `python vl_caller.py`
+- PPT：PptxGenJS
+
+## 本地运行
+
+环境要求：
 
 - Node.js 20+
 - Python 3.10+
-- PaddleOCR document parsing skill installed locally
-- PaddleOCR API URL and access token
+- 本机已安装 PaddleOCR 文档解析 skill
+- 可用的 PaddleOCR-VL API URL 和 Token
 
-The backend invokes:
+安装依赖：
 
-```text
-<USERPROFILE>/.codex/skills/paddleocr-doc-parsing/scripts/vl_caller.py
+```bash
+npm install
 ```
 
-You can override the script location by editing `server/src/config.ts`.
+开发模式：
 
-## Configuration
+```bash
+npm run dev
+```
 
-Set these environment variables, or enter them in the web UI:
+前端默认访问：
+
+```text
+http://localhost:5173
+```
+
+构建并运行生产版本：
+
+```bash
+npm run build
+npm run start
+```
+
+生产服务默认访问：
+
+```text
+http://localhost:3001
+```
+
+## PaddleOCR 配置
+
+可以在前端页面填写个人 PaddleOCR-VL 配置，也可以通过环境变量配置：
 
 ```bash
 PADDLEOCR_DOC_PARSING_API_URL=https://your-service/layout-parsing
@@ -41,40 +76,23 @@ PADDLEOCR_ACCESS_TOKEN=your_token
 PADDLEOCR_DOC_PARSING_TIMEOUT=180000
 ```
 
-Tokens are not stored in the repository. The frontend stores personal OCR settings only in browser `localStorage`.
+Token 不会写入仓库。前端个人配置只保存在浏览器 `localStorage`。
 
-## Run Locally
-
-Install dependencies:
-
-```bash
-npm install
-```
-
-Start development servers:
-
-```bash
-npm run dev
-```
-
-Open:
+后端默认调用：
 
 ```text
-http://localhost:5173
+<USERPROFILE>/.codex/skills/paddleocr-doc-parsing/scripts/vl_caller.py
 ```
 
-Build and run production output:
+如需调整脚本路径，可修改 [server/src/config.ts](server/src/config.ts)。
 
-```bash
-npm run build
-npm run start
-```
+## 核心功能
 
-Open:
-
-```text
-http://localhost:3001
-```
+- 支持单张或多张图片 OCR。
+- 支持上传 OCR JSON + 原图生成 PPT。
+- 支持多页输出：一张图或 OCR 顶层一个 page 对应一页 slide。
+- 默认使用“布局稳定优先”的 PaddleOCR 参数，避免文档预处理和去畸变导致 bbox 与原图错位。
+- 读取 JSON 时兼容普通 UTF-8、UTF-8 BOM、UTF-16LE 和 UTF-16BE。
 
 ## API
 
@@ -82,14 +100,14 @@ http://localhost:3001
 
 `multipart/form-data`
 
-Fields:
+字段：
 
-- `image` or `images`: one or more image files
-- `paddleApiUrl`: optional PaddleOCR endpoint override
-- `paddleAccessToken`: optional token override
-- `paddleTimeoutMs`: optional timeout override
+- `image` 或 `images`：一张或多张图片
+- `paddleApiUrl`：可选，覆盖 PaddleOCR endpoint
+- `paddleAccessToken`：可选，覆盖 PaddleOCR token
+- `paddleTimeoutMs`：可选，覆盖超时时间
 
-Returns:
+返回：
 
 - `rawJson`
 - `normalizedDocument`
@@ -100,19 +118,35 @@ Returns:
 
 `multipart/form-data`
 
-Fields:
+字段：
 
-- `ocrJson` or `ocrJsonText`
-- `sourceImage` or `sourceImages`
-- `imageWidth` / `imageHeight` when no source image is available
+- `ocrJson` 或 `ocrJsonText`
+- `sourceImage` 或 `sourceImages`
+- `imageWidth` / `imageHeight`：没有原图时可选提供页面尺寸，但如果 JSON 中存在 image block，仍建议上传原图
 
-Returns a `.pptx` file.
+返回 `.pptx` 文件流。
 
-## Notes
+## JSON2PPTX 当前限制
 
-- The default OCR parameter profile prioritizes stable layout coordinates for editable PPT reconstruction.
-- Original image files are required when the OCR JSON contains image blocks.
-- Temporary upload and PPT files are written under `server/tmp`.
+`json2pptx` 部分仍有待优化，尤其是：
+
+- 文本框长度和高度仍可能与原图存在偏差。
+- 字号、行距、段落换行与原始图片不能保证完全一致。
+- PaddleOCR 返回的 bbox 如果本身有偏移，PPT 中也会继承这种偏移。
+- 表格会尽量转为原生 PowerPoint 表格，但复杂合并单元格和特殊样式还不能完全复刻。
+- 图表、公式和混排内容当前以稳定可编辑为优先，不保证像素级还原。
+
+因此当前版本适合作为“可编辑初稿生成器”。如果目标是完全视觉一致，后续需要继续优化文本测量、字号估计、bbox 后处理和复杂版式规则。
+
+## 临时文件
+
+上传文件、OCR 中间结果和生成的 PPT 会写入：
+
+```text
+server/tmp
+```
+
+该目录不会提交到 Git。
 
 ## License
 
