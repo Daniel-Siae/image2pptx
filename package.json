@@ -1,0 +1,19 @@
+{
+  "name": "paddleocr-json-to-ppt-webapp",
+  "version": "0.1.0",
+  "description": "Convert PaddleOCR-VL layout parsing JSON and source images into editable PowerPoint decks.",
+  "license": "MIT",
+  "workspaces": [
+    "client",
+    "server"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev --workspace server\" \"npm run dev --workspace client\"",
+    "build": "npm run build --workspace server && npm run build --workspace client",
+    "start": "npm run start --workspace server",
+    "lint": "npm run lint --workspace client"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
