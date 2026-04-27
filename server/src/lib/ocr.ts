@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import sharp from "sharp";
 import type { ImageMeta } from "../../../shared/types";
-import { OCR_SCRIPT_PATH, OCR_TIMEOUT_MS, TMP_DIR } from "../config";
+import { OCR_SCRIPT_PATH, OCR_TIMEOUT_MS, PYTHON_BIN, TMP_DIR } from "../config";
 import { ensureDir, removeIfExists, uniquePath } from "./files";
 
 export interface PaddleOcrEnvOverride {
@@ -99,6 +99,14 @@ export async function runPaddleOcr(
   overrides?: PaddleOcrEnvOverride,
 ): Promise<unknown> {
   await ensureDir(TMP_DIR);
+  try {
+    await fs.access(OCR_SCRIPT_PATH);
+  } catch {
+    throw new OcrExecutionError(
+      `PaddleOCR caller script not found: ${OCR_SCRIPT_PATH}`,
+    );
+  }
+
   const outputPath = uniquePath(TMP_DIR, ".json");
 
   const args = [
@@ -118,7 +126,7 @@ export async function runPaddleOcr(
     stderr: string;
     timedOut: boolean;
   }>((resolve, reject) => {
-    const child = spawn("python", args, {
+    const child = spawn(PYTHON_BIN, args, {
       windowsHide: true,
       stdio: ["ignore", "pipe", "pipe"],
       env: buildOcrEnv(overrides),
@@ -142,7 +150,11 @@ export async function runPaddleOcr(
 
     child.on("error", (error) => {
       clearTimeout(timer);
-      reject(error);
+      reject(
+        new OcrExecutionError(
+          `Failed to start Python interpreter '${PYTHON_BIN}': ${error.message}`,
+        ),
+      );
     });
 
     child.on("close", (exitCode) => {

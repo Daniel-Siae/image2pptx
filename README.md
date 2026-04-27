@@ -10,6 +10,29 @@
 
 ![OCR 布局框对齐诊断](docs/images/ocr-1-stable-overlay.png)
 
+## 如何获取 PaddleOCR API
+
+访问 PaddleOCR API 页面：
+
+```text
+https://aistudio.baidu.com/paddleocr
+```
+
+第一步，进入页面后点击中间的 `API` 按钮。
+
+![点击 PaddleOCR API 入口](docs/images/paddleocr-api-entry.svg)
+
+第二步，在 API 页面选择模型，点击“复制代码”，从示例代码中获取 `API_URL` 和 `TOKEN`。
+
+![获取 API URL 和 Token](docs/images/paddleocr-api-token.svg)
+
+第三步，启动本项目后，在前端“个人 PaddleOCR 配置”中填入：
+
+- `API URL`：形如 `https://<your-app>.aistudio-app.com/layout-parsing`
+- `Access Token`：AI Studio 访问令牌
+
+Token 属于个人隐私，不要提交到 GitHub，也不要写入公开配置文件。
+
 ## 样例文件
 
 仓库内置了一个首个验收样例：
@@ -23,7 +46,7 @@
 
 - 前端：React + Vite
 - 后端：Node.js + Express + TypeScript
-- OCR：通过 PaddleOCR 文档解析 skill 调用 `python vl_caller.py`
+- OCR：通过服务端内置 PaddleOCR 文档解析脚本调用 `python vl_caller.py`
 - PPT：PptxGenJS
 
 ## 本地运行
@@ -32,13 +55,19 @@
 
 - Node.js 20+
 - Python 3.10+
-- 本机已安装 PaddleOCR 文档解析 skill
+- 服务端已内置 PaddleOCR 文档解析调用脚本
 - 可用的 PaddleOCR-VL API URL 和 Token
 
 安装依赖：
 
 ```bash
 npm install
+```
+
+安装 Python 依赖：
+
+```bash
+pip install -r server/paddleocr-doc-parsing/scripts/requirements.txt
 ```
 
 开发模式：
@@ -74,17 +103,19 @@ http://localhost:3001
 PADDLEOCR_DOC_PARSING_API_URL=https://your-service/layout-parsing
 PADDLEOCR_ACCESS_TOKEN=your_token
 PADDLEOCR_DOC_PARSING_TIMEOUT=180000
+PADDLEOCR_VL_CALLER_PATH=server/paddleocr-doc-parsing/scripts/vl_caller.py
+PYTHON_BIN=python
 ```
 
 Token 不会写入仓库。前端个人配置只保存在浏览器 `localStorage`。
 
-后端默认调用：
+后端默认调用仓库内置脚本：
 
 ```text
-<USERPROFILE>/.codex/skills/paddleocr-doc-parsing/scripts/vl_caller.py
+server/paddleocr-doc-parsing/scripts/vl_caller.py
 ```
 
-如需调整脚本路径，可修改 [server/src/config.ts](server/src/config.ts)。
+如需调整脚本路径，优先设置 `PADDLEOCR_VL_CALLER_PATH`；如需指定 Python 解释器，设置 `PYTHON_BIN`。
 
 ## 核心功能
 

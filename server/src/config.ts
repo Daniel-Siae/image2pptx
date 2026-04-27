@@ -5,14 +5,16 @@ export const WORKSPACE_ROOT = path.resolve(SERVER_ROOT, "..");
 export const CLIENT_DIST_DIR = path.join(WORKSPACE_ROOT, "client", "dist");
 export const SAMPLE_DIR = path.join(SERVER_ROOT, "samples");
 export const TMP_DIR = path.join(SERVER_ROOT, "tmp");
-export const OCR_SCRIPT_PATH = path.join(
-  process.env.USERPROFILE ?? "C:\\Users\\86139",
-  ".codex",
-  "skills",
+const BUNDLED_OCR_SCRIPT_PATH = path.join(
+  SERVER_ROOT,
   "paddleocr-doc-parsing",
   "scripts",
   "vl_caller.py",
 );
+export const OCR_SCRIPT_PATH = process.env.PADDLEOCR_VL_CALLER_PATH
+  ? path.resolve(SERVER_ROOT, process.env.PADDLEOCR_VL_CALLER_PATH)
+  : BUNDLED_OCR_SCRIPT_PATH;
+export const PYTHON_BIN = process.env.PYTHON_BIN ?? "python";
 export const PPT_HELPER_LAYOUT_PATH = path.join(
   SERVER_ROOT,
   "src",

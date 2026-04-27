@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="861" height="837" viewBox="0 0 861 837" role="img" aria-label="PaddleOCR API URL and token guide">
+  <defs>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="14" flood-color="#0f172a" flood-opacity="0.14"/>
+    </filter>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M2,2 L10,6 L2,10 Z" fill="#ff3b30"/>
+    </marker>
+  </defs>
+
+  <rect width="861" height="837" fill="#ffffff"/>
+  <rect x="24" y="24" width="18" height="18" rx="4" fill="#4f46e5"/>
+  <path d="M29 33 L33 37 L39 28" fill="none" stroke="#ffffff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="52" y="40" font-family="Arial, sans-serif" font-size="16" fill="#111827">使用我的 AI Studio 访问令牌</text>
+
+  <text x="25" y="92" font-family="Arial, sans-serif" font-size="15" fill="#475569">AI Studio 访问令牌属于个人账户的重要隐私，请谨慎管理，切勿随意对外公开。</text>
+  <text x="517" y="92" font-family="Arial, sans-serif" font-size="15" fill="#2563eb">点击获取令牌</text>
+
+  <g font-family="Arial, sans-serif" font-size="16" fill="#111827">
+    <text x="25" y="139" font-weight="700">PaddleOCR-VL-1.5</text>
+    <text x="193" y="139">PaddleOCR-VL</text>
+    <text x="327" y="139">PP-OCRv5</text>
+    <text x="435" y="139">PP-StructureV3</text>
+  </g>
+  <rect x="25" y="149" width="141" height="3" rx="1.5" fill="#4f46e5"/>
+
+  <rect x="24" y="164" width="400" height="136" rx="10" fill="#f5f7ff"/>
+  <text x="43" y="193" font-family="Arial, sans-serif" font-size="15" fill="#334155">今日调用解析页数</text>
+  <rect x="43" y="228" width="363" height="5" rx="2.5" fill="#dbe2ef"/>
+  <text x="43" y="280" font-family="Arial, sans-serif" font-size="18" fill="#334155">0 / 20,000</text>
+
+  <rect x="436" y="164" width="400" height="136" rx="10" fill="#f5f7ff"/>
+  <text x="455" y="193" font-family="Arial, sans-serif" font-size="15" fill="#334155">API调用须知</text>
+  <text x="455" y="223" font-family="Arial, sans-serif" font-size="14" fill="#64748b">1. 每个模型达到当日解析上限后会返回 429。</text>
+  <text x="455" y="249" font-family="Arial, sans-serif" font-size="14" fill="#64748b">2. 单个文件大小无限制，建议 PDF 控制在 100 页内。</text>
+
+  <rect x="24" y="359" width="812" height="459" rx="8" fill="#f5f7ff"/>
+  <rect x="24" y="359" width="812" height="52" rx="8" fill="#eef2ff"/>
+  <rect x="34" y="371" width="86" height="26" rx="4" fill="#ffffff" stroke="#dbeafe"/>
+  <text x="77" y="389" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#2563eb">同步解析</text>
+  <text x="142" y="389" font-family="Arial, sans-serif" font-size="14" fill="#334155">异步解析</text>
+  <rect x="735" y="374" width="78" height="24" rx="5" fill="#ffffff" stroke="#dbeafe"/>
+  <text x="774" y="391" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#1f2937">复制代码</text>
+
+  <g font-family="Consolas, 'Courier New', monospace" font-size="15">
+    <text x="51" y="449" fill="#111827"># Please make sure the requests library is installed</text>
+    <text x="51" y="472" fill="#111827"># pip install requests</text>
+    <text x="51" y="518" fill="#a21caf">API_URL</text>
+    <text x="121" y="518" fill="#111827">=</text>
+    <rect x="143" y="501" width="478" height="27" rx="5" fill="#ffffff" stroke="#94a3b8"/>
+    <text x="156" y="520" fill="#0f766e">"https://&lt;your-app&gt;.aistudio-app.com/layout-parsing"</text>
+    <text x="51" y="548" fill="#a21caf">TOKEN</text>
+    <text x="121" y="548" fill="#111827">=</text>
+    <rect x="143" y="531" width="282" height="27" rx="5" fill="#111827"/>
+    <text x="156" y="550" fill="#ffffff">"&lt;your-token&gt;"</text>
+    <text x="51" y="626" fill="#a21caf">headers</text>
+    <text x="121" y="626" fill="#111827">= {"Authorization": f"token {TOKEN}"}</text>
+    <text x="51" y="674" fill="#a21caf">payload</text>
+    <text x="121" y="674" fill="#111827">= {"file": file_data, "fileType": 1}</text>
+  </g>
+
+  <path d="M620 514 C706 490, 741 446, 748 400" fill="none" stroke="#ff3b30" stroke-width="4" marker-end="url(#arrow)"/>
+  <rect x="606" y="450" width="219" height="86" rx="14" fill="#ffffff" stroke="#ff3b30" stroke-width="3" filter="url(#shadow)"/>
+  <text x="716" y="482" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#b91c1c">第二步：复制代码</text>
+  <text x="716" y="509" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#334155">取出 API_URL 和 TOKEN</text>
+
+  <path d="M424 548 C515 594, 584 636, 649 694" fill="none" stroke="#2563eb" stroke-width="4" marker-end="url(#arrow)"/>
+  <rect x="555" y="695" width="270" height="94" rx="14" fill="#ffffff" stroke="#2563eb" stroke-width="3" filter="url(#shadow)"/>
+  <text x="690" y="728" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#1d4ed8">第三步：填入本项目</text>
+  <text x="690" y="754" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#334155">前端填写 API URL 和 Access Token</text>
+  <text x="690" y="775" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#334155">不要把 Token 提交到 GitHub</text>
+</svg>
