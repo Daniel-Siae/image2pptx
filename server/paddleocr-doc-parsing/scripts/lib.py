@@ -149,6 +149,34 @@ def _load_file_as_base64(file_path: str) -> str:
 # =============================================================================
 
 
+def _env_flag(key: str) -> bool:
+    return os.getenv(key, "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _is_ssl_eof_error(error: Exception) -> bool:
+    message = str(error)
+    return (
+        "EOF occurred in violation of protocol" in message
+        or ("SSL" in message and "EOF" in message)
+    )
+
+
+def _format_request_error(error: Exception, api_url: str) -> str:
+    if _is_ssl_eof_error(error):
+        parsed = urlparse(api_url)
+        endpoint = f"{parsed.scheme}://{parsed.netloc}" if parsed.netloc else api_url
+        return (
+            "API request failed: SSL connection was closed by the endpoint or a "
+            f"network proxy while connecting to {endpoint}. Verify that the API URL "
+            "uses the correct http/https scheme and ends with /layout-parsing, then "
+            "check proxy/firewall settings. If this is a trusted private endpoint "
+            "with nonstandard TLS, set PADDLEOCR_DOC_PARSING_INSECURE_TLS=1 and retry. "
+            f"Original error: {error}"
+        )
+
+    return f"API request failed: {error}"
+
+
 def _make_api_request(api_url: str, token: str, params: dict) -> dict:
     """
     Make PaddleOCR document parsing API request.
@@ -171,14 +199,32 @@ def _make_api_request(api_url: str, token: str, params: dict) -> dict:
     }
 
     timeout = float(os.getenv("PADDLEOCR_DOC_PARSING_TIMEOUT", str(DEFAULT_TIMEOUT)))
+    retries = max(1, int(os.getenv("PADDLEOCR_DOC_PARSING_RETRIES", "2")))
+    verify_tls = not _env_flag("PADDLEOCR_DOC_PARSING_INSECURE_TLS")
 
     try:
-        with httpx.Client(timeout=timeout) as client:
-            resp = client.post(api_url, json=params, headers=headers)
+        for attempt in range(retries):
+            try:
+                with httpx.Client(timeout=timeout, verify=verify_tls, http2=False) as client:
+                    resp = client.post(
+                        api_url,
+                        json=params,
+                        headers={**headers, "Connection": "close"},
+                    )
+                break
+            except httpx.RequestError as e:
+                if attempt + 1 < retries and _is_ssl_eof_error(e):
+                    logger.warning(
+                        "PaddleOCR API SSL EOF on attempt %s/%s; retrying",
+                        attempt + 1,
+                        retries,
+                    )
+                    continue
+                raise
     except httpx.TimeoutException:
         raise RuntimeError(f"API request timed out after {timeout}s")
     except httpx.RequestError as e:
-        raise RuntimeError(f"API request failed: {e}")
+        raise RuntimeError(_format_request_error(e, api_url))
 
     # Handle HTTP errors
     if resp.status_code != 200:

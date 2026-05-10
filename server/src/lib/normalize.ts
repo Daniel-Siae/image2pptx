@@ -1,4 +1,6 @@
+import * as cheerio from "cheerio";
 import type {
+  BoundingBox,
   ImageMeta,
   NormalizedBlock,
   NormalizedDocument,
@@ -28,11 +30,15 @@ function toSupportedBlockType(value: unknown, rawText: string): OcrBlockType {
     case "aside_text":
       return "text";
     case "vision_footnote":
-    case "formula_caption":
     case "figure_caption":
     case "table_caption":
     case "chart_title":
     case "figure_title":
+      return "text";
+    case "formula":
+    case "doc_formula":
+    case "inline_formula":
+    case "formula_caption":
       return "text";
     case "footer_image":
     case "header_image":
@@ -102,21 +108,130 @@ function unwrapPages(rawJson: unknown): RawPage[] {
   return pages;
 }
 
+function containsHtmlTag(text: string): boolean {
+  return /<\/?[a-z][^>]*>/i.test(text) || /&lt;\/?[a-z][^&]*&gt;/i.test(text);
+}
+
+function htmlToPlainText(rawText: string): string {
+  const decodedText = rawText
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/g, "'");
+  const textWithLineBreaks = decodedText
+    .replace(/<\s*br\s*\/?>/gi, "\n")
+    .replace(/<\s*\/\s*(div|p|li|tr|h[1-6])\s*>/gi, "\n")
+    .replace(/<\s*(div|p|li|tr|h[1-6])(?:\s[^>]*)?>/gi, "\n");
+  const $ = cheerio.load(textWithLineBreaks, {}, false);
+
+  return $.root()
+    .text()
+    .replace(/\u00a0/g, " ")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n[ \t]+/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 function sanitizeText(rawText: string, type: OcrBlockType): string {
-  const trimmed = rawText.trim();
+  const trimmed = containsHtmlTag(rawText) ? htmlToPlainText(rawText) : rawText.trim();
   if (type === "doc_title" || type === "paragraph_title") {
     return trimmed.replace(/^#{1,6}\s*/, "").trim();
   }
   return trimmed;
 }
 
+function formulaKindFromLabel(rawLabel: string): NormalizedBlock["formulaKind"] | undefined {
+  switch (rawLabel) {
+    case "formula":
+    case "doc_formula":
+      return "standalone";
+    case "inline_formula":
+      return "inline";
+    case "formula_caption":
+      return "caption";
+    default:
+      return undefined;
+  }
+}
+
 function looksLikeStandaloneFormula(rawText: string): boolean {
   const text = rawText.trim();
-  if (!text.startsWith("$") || !text.endsWith("$")) {
+  if (
+    !(
+      (text.startsWith("$") && text.endsWith("$")) ||
+      (text.startsWith("\\[") && text.endsWith("\\]")) ||
+      (text.startsWith("\\(") && text.endsWith("\\)"))
+    )
+  ) {
     return false;
   }
 
-  return !/[\u4e00-\u9fffA-Za-z]{2,}/.test(text.replace(/\$+/g, ""));
+  return !/[\u4e00-\u9fffA-Za-z]{2,}/.test(
+    text.replace(/\$+|\\\[|\\\]|\\\(|\\\)/g, ""),
+  );
+}
+
+function looksLikeInlineFormula(rawText: string): boolean {
+  return /\$[^$\n]+\$|\\\([^)]+\\\)|\\\[[^\]]+\\\]|\\(?:alpha|beta|gamma|delta|theta|lambda|mu|pi|phi|varphi|sum|prod|int|frac|sqrt|arg|min|max|nabla|odot|vec|Sigma|Omega)\b/.test(
+    rawText,
+  );
+}
+
+function formulaKindFromContent(rawText: string): NormalizedBlock["formulaKind"] | undefined {
+  if (looksLikeStandaloneFormula(rawText)) {
+    return "standalone";
+  }
+  if (looksLikeInlineFormula(rawText)) {
+    return "inline";
+  }
+  return undefined;
+}
+
+function splitTextLines(text: string): string[] {
+  return text
+    .split(/\r?\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
+function area(bbox: BoundingBox): number {
+  return Math.max(0, bbox.width) * Math.max(0, bbox.height);
+}
+
+function intersectionArea(left: BoundingBox, right: BoundingBox): number {
+  const x1 = Math.max(left.x, right.x);
+  const y1 = Math.max(left.y, right.y);
+  const x2 = Math.min(left.x + left.width, right.x + right.width);
+  const y2 = Math.min(left.y + left.height, right.y + right.height);
+  return Math.max(0, x2 - x1) * Math.max(0, y2 - y1);
+}
+
+function centerInside(inner: BoundingBox, outer: BoundingBox): boolean {
+  const cx = inner.x + inner.width / 2;
+  const cy = inner.y + inner.height / 2;
+  return (
+    cx >= outer.x &&
+    cx <= outer.x + outer.width &&
+    cy >= outer.y &&
+    cy <= outer.y + outer.height
+  );
+}
+
+function shouldSuppressInPpt(block: NormalizedBlock, imageBlocks: NormalizedBlock[]): boolean {
+  if (block.type === "image" || block.type === "table") {
+    return false;
+  }
+
+  const blockArea = area(block.bbox);
+  if (blockArea <= 0) {
+    return false;
+  }
+
+  return imageBlocks.some((imageBlock) => {
+    const overlapRatio = intersectionArea(block.bbox, imageBlock.bbox) / blockArea;
+    return overlapRatio > 0.8 && centerInside(block.bbox, imageBlock.bbox);
+  });
 }
 
 function normalizePage(
@@ -160,12 +275,15 @@ function normalizePage(
       };
 
       const rawText = typeof item.block_content === "string" ? item.block_content : "";
-      const type = toSupportedBlockType(item.block_label, rawText);
+      const rawLabel = typeof item.block_label === "string" ? item.block_label : "";
+      const type = toSupportedBlockType(rawLabel, rawText);
       const block: NormalizedBlock = {
         id: `page-${pageIndex}-block-${String(item.block_id ?? index)}`,
         type,
         bbox,
         order: Number(item.block_order ?? index + 1),
+        rawLabel,
+        rawContent: rawText,
       };
 
       if (type === "table") {
@@ -179,7 +297,10 @@ function normalizePage(
         };
       } else {
         block.text = sanitizeText(rawText, type);
-        block.isFormula = looksLikeStandaloneFormula(rawText);
+        block.textLines = splitTextLines(block.text);
+        block.formulaKind =
+          formulaKindFromLabel(rawLabel) ?? formulaKindFromContent(block.text);
+        block.isFormula = Boolean(block.formulaKind);
       }
 
       return block;
@@ -187,11 +308,18 @@ function normalizePage(
     .filter((block): block is NormalizedBlock => block !== null)
     .sort((left, right) => left.order - right.order);
 
+  const imageBlocks = blocks.filter((block) => block.type === "image");
+  const blocksWithSuppression = blocks.map((block) => ({
+    ...block,
+    suppressedInPpt: shouldSuppressInPpt(block, imageBlocks) || undefined,
+    renderMode: shouldSuppressInPpt(block, imageBlocks) ? ("suppressed" as const) : undefined,
+  }));
+
   return {
     pageIndex,
     width: pageWidth,
     height: pageHeight,
-    blocks,
+    blocks: blocksWithSuppression,
   };
 }
 
