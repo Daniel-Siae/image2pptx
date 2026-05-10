@@ -16,7 +16,8 @@ type DownloadState = {
 
 const STORAGE_KEY = "paddleocr-webapp-config";
 const PADDLEOCR_VL_API_URL = "";
-const LEGACY_API_URLS = new Set<string>();
+const PADDLEOCR_JOBS_API_PLACEHOLDER =
+  "https://paddleocr.aistudio-app.com/api/v2/ocr/jobs";
 
 const defaultOcrConfig: PaddleOcrConfig = {
   apiUrl: PADDLEOCR_VL_API_URL,
@@ -32,6 +33,10 @@ const blockColors: Record<OcrBlockType, string> = {
   image: "#ff375f",
   footer: "#8e8e93",
 };
+
+function isLegacyApiUrl(apiUrl: string): boolean {
+  return /\/layout-parsing\/?$/.test(apiUrl);
+}
 
 function downloadBlob(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
@@ -90,7 +95,7 @@ function loadStoredConfig(): PaddleOcrConfig {
     const parsed = JSON.parse(raw) as Partial<PaddleOcrConfig>;
     const storedApiUrl = typeof parsed.apiUrl === "string" ? parsed.apiUrl.trim() : "";
     const apiUrl =
-      !storedApiUrl || LEGACY_API_URLS.has(storedApiUrl)
+      !storedApiUrl || isLegacyApiUrl(storedApiUrl)
         ? PADDLEOCR_VL_API_URL
         : storedApiUrl;
 
@@ -389,7 +394,7 @@ export default function App() {
                 <span>API URL</span>
                 <input
                   type="url"
-                  placeholder="https://your-endpoint/layout-parsing"
+                  placeholder={PADDLEOCR_JOBS_API_PLACEHOLDER}
                   value={ocrConfig.apiUrl}
                   onChange={(event) =>
                     setOcrConfig((current) => ({ ...current, apiUrl: event.target.value }))

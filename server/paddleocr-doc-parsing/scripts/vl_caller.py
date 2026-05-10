@@ -81,8 +81,10 @@ Examples:
   # Print JSON to stdout without saving a file
   python scripts/paddleocr-doc-parsing/vl_caller.py --file-url "URL" --stdout --pretty
 Configuration:
-  Set environment variables: PADDLEOCR_DOC_PARSING_API_URL, PADDLEOCR_ACCESS_TOKEN
-  Optional: PADDLEOCR_DOC_PARSING_TIMEOUT
+  Set environment variables: PADDLEOCR_ACCESS_TOKEN
+  Optional: PADDLEOCR_DOC_PARSING_API_URL or PADDLEOCR_JOBS_URL,
+            PADDLEOCR_DOC_PARSING_TIMEOUT,
+            PADDLEOCR_DOC_PARSING_POLL_INTERVAL
         """,
     )
 
