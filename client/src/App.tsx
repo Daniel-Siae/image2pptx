@@ -339,7 +339,8 @@ export default function App() {
   const previewPage = deferredDocument?.pages[currentPreviewIndex];
   const previewUrl = previewImageUrls[currentPreviewIndex] ?? previewImageUrls[0] ?? null;
   const previewCount = deferredDocument?.pages.length ?? 0;
-  const selectedPageBlocks = previewPage?.blocks.length ?? 0;
+  const visiblePreviewBlocks = previewPage?.blocks.filter((block) => !block.suppressedInPpt) ?? [];
+  const selectedPageBlocks = visiblePreviewBlocks.length;
 
   return (
     <main className="apple-shell">
@@ -534,7 +535,7 @@ export default function App() {
                   className="preview-overlay"
                   style={{ aspectRatio: `${previewPage.width} / ${previewPage.height}` }}
                 >
-                  {previewPage.blocks.map((block) => (
+                  {visiblePreviewBlocks.map((block) => (
                     <div
                       key={block.id}
                       className="preview-block"

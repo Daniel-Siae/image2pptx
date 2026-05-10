@@ -6,6 +6,8 @@ export type OcrBlockType =
   | "image"
   | "footer";
 
+export type PptReconstructionMode = "hybrid" | "editable" | "visual";
+
 export interface BoundingBox {
   x: number;
   y: number;
@@ -25,10 +27,16 @@ export interface NormalizedBlock {
   type: OcrBlockType;
   bbox: BoundingBox;
   order: number;
+  rawLabel?: string;
+  rawContent?: string;
   text?: string;
+  textLines?: string[];
   html?: string;
   imageCrop?: ImageCrop;
   isFormula?: boolean;
+  formulaKind?: "standalone" | "inline" | "caption";
+  suppressedInPpt?: boolean;
+  renderMode?: "editable" | "visual" | "suppressed";
 }
 
 export interface NormalizedPage {
