@@ -22,13 +22,17 @@ https://aistudio.baidu.com/paddleocr
 
 ![点击 PaddleOCR API 入口](docs/images/paddleocr-api-entry.svg)
 
-第二步，在 API 页面选择模型，点击“复制代码”，从示例代码中获取 Token。
+第二步，在 API 页面选择 `PaddleOCR-VL-1.5`，切换到“异步解析”，点击“复制代码”，从示例代码中获取：
 
-![获取 API URL 和 Token](docs/images/paddleocr-api-token.svg)
+- `JOB_URL`：默认是 `https://paddleocr.aistudio-app.com/api/v2/ocr/jobs`
+- `TOKEN`：AI Studio 访问令牌
+- `MODEL`：当前使用 `PaddleOCR-VL-1.5`
+
+![获取异步解析 JOB_URL 和 Token](docs/images/paddleocr-api-token.svg)
 
 第三步，启动本项目后，在前端“个人 PaddleOCR 配置”中填入：
 
-- `API URL`：可留空使用默认异步 Jobs 接口，也可填写 `https://paddleocr.aistudio-app.com/api/v2/ocr/jobs`
+- `API URL`：填写异步解析代码里的 `JOB_URL`；也可以留空，后端默认使用 `https://paddleocr.aistudio-app.com/api/v2/ocr/jobs`
 - `Access Token`：AI Studio 访问令牌
 
 Token 属于个人隐私，不要提交到 GitHub，也不要写入公开配置文件。前端个人配置只保存在浏览器 `localStorage`。
@@ -96,15 +100,21 @@ http://localhost:3001
 
 ## PaddleOCR 配置
 
-可以在前端页面填写个人 PaddleOCR-VL 配置，也可以通过环境变量配置：
+项目使用 AI Studio 页面中“异步解析”示例代码里的 `JOB_URL`。可以在前端页面填写个人 PaddleOCR-VL 配置，也可以通过环境变量配置：
 
 ```bash
+# 异步解析 JOB_URL
 PADDLEOCR_DOC_PARSING_API_URL=https://paddleocr.aistudio-app.com/api/v2/ocr/jobs
-# 或使用别名：
+# 或使用更直观的别名：
 PADDLEOCR_JOBS_URL=https://paddleocr.aistudio-app.com/api/v2/ocr/jobs
+
+# AI Studio 访问令牌
 PADDLEOCR_ACCESS_TOKEN=your_token
+
+# 轮询配置
 PADDLEOCR_DOC_PARSING_TIMEOUT=180000
 PADDLEOCR_DOC_PARSING_POLL_INTERVAL=5
+
 PADDLEOCR_VL_CALLER_PATH=server/paddleocr-doc-parsing/scripts/vl_caller.py
 PYTHON_BIN=python
 ```
@@ -122,7 +132,7 @@ server/paddleocr-doc-parsing/scripts/vl_caller.py
 - 支持单张或多张图片 OCR。
 - 支持上传 OCR JSON + 原图生成 PPT。
 - 支持多页输出：一张图或 OCR 页对应一页 slide。
-- OCR 调用使用 PaddleOCR v2 Jobs 异步流程：提交 job、轮询状态、下载 JSONL 结果。
+- OCR 调用使用 PaddleOCR-VL-1.5 的异步解析 `JOB_URL`：提交 job、轮询状态、下载 JSONL 结果。
 - 预览层默认隐藏 `suppressedInPpt` 内部重复文字框，只显示实际导出 PPT 会使用的框。
 - PPT 默认字体为中文宋体，英文、数字和 ASCII 标点为 Times New Roman。
 - OCR 文本会自动清理正文中的 HTML 标签，避免 `<div style=...>` 进入 PPT 文本或公式编译流程。
